@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zelda Infinite Grid MMO RPG Engine</title>
+    <style>
+        :root {
+            --bg-color: #050811;
+            --panel-bg: rgba(15, 23, 42, 0.94);
+            --border-color: #334155;
+            --accent-color: #10b981;
+            --gold-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --text-color: #f1f5f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1280px;
+            max-height: 960px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+        }
+
+        canvas#gameCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            background-color: #0a0f1d;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            z-index: 10;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .hud-panel {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+        }
+
+        .hearts-container {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .heart {
+            width: 16px;
+            height: 16px;
+            background: var(--danger-color);
+            clip-path: polygon(50% 15%, 80% 0%, 100% 20%, 100% 50%, 50% 95%, 0% 50%, 0% 20%, 20% 0%);
+            display: inline-block;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+            transition: opacity 0.2s ease;
+        }
+
+        .heart.empty {
+            background: #475569;
+            opacity: 0.4;
+        }
+
+        .coords-badge {
+            font-size: 11px;
+            color: var(--gold-color);
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            margin-top: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .status-pill.offline {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--danger-color);
+            color: #f87171;
+        }
+
+        .status-pill.local {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--info-color);
+            color: #60a5fa;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+        }
+        .status-pill.offline .status-dot { background: var(--danger-color); box-shadow: 0 0 8px var(--danger-color); }
+        .status-pill.local .status-dot { background: var(--info-color); box-shadow: 0 0 8px var(--info-color); }
+
+        .ping-badge {
+            font-size: 9px;
+            opacity: 0.9;
+            margin-left: 2px;
+        }
+
+        .hud-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            background: #1e293b;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .btn:hover {
+            background: #334155;
+            border-color: var(--accent-color);
+            color: #fff;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-attack {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger-color);
+            color: #fca5a5;
+        }
+
+        .btn-attack:hover {
+            background: var(--danger-color);
+            color: #fff;
+        }
+
+        .hud-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .log-box {
+            width: 240px;
+            height: 70px;
+            overflow-y: auto;
+            font-size: 10px;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column-reverse;
+            color: #cbd5e1;
+            scrollbar-width: thin;
+        }
+
+        .log-entry { margin-bottom: 2px; text-shadow: 1px 1px 0 #000; }
+        .log-entry.system { color: var(--gold-color); }
+        .log-entry.join { color: var(--accent-color); }
+        .log-entry.leave { color: var(--danger-color); }
+        .log-entry.combat { color: #f87171; }
+
+        .players-panel {
+            width: 180px;
+            max-height: 95px;
+            overflow-y: auto;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .minimap-container {
+            width: 85px;
+            height: 85px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+        }
+
+        canvas#minimapCanvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .dpad-container {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 130px;
+            height: 130px;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        @media (max-width: 768px) {
+            .dpad-container { display: block; }
+            .log-box { width: 150px; height: 50px; }
+            .players-panel { width: 120px; }
+        }
+
+        .dpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 100%;
+            height: 100%;
+            gap: 2px;
+        }
+
+        .dpad-btn {
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+        .dpad-btn:active, .dpad-btn.active { background: var(--accent-color); color: #000; }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 100;
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-window {
+            width: 90%;
+            max-width: 680px;
+            max-height: 85vh;
+            background: #0f172a;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-header {
+            padding: 12px 18px;
+            background: #1e293b;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        #debugConsoleDrawer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 220px;
+            background: rgba(2, 6, 23, 0.96);
+            border-top: 2px solid var(--border-color);
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.25s ease-in-out;
+            pointer-events: auto;
+        }
+
+        #debugConsoleDrawer.open {
+            transform: translateY(0);
+        }
+
+        .console-header {
+            padding: 6px 12px;
+            background: #0f172a;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .console-output {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+            color: #a5b4fc;
+            line-height: 1.4;
+            scrollbar-width: thin;
+        }
+
+        .console-line { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 2px; }
+        .console-line.err { color: #f87171; }
+        .console-line.ok { color: #34d399; }
+        .console-line.info { color: #60a5fa; }
+
+        .name-input-box {
+            width: 100%;
+            padding: 10px 14px;
+            background: #020617;
+            border: 2px solid var(--accent-color);
+            border-radius: 6px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            outline: none;
+            margin: 12px 0;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: #fff; }
+
+        /* Death Overlay Screen */
+        .death-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(185, 28, 28, 0.45);
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .death-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .death-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #fecaca;
+            text-shadow: 0 0 20px #ef4444, 2px 2px 0 #000;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .death-timer {
+            font-size: 16px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="dpad-container">
+            <div class="dpad-grid">
+                <div class="dpad-btn" id="btnUL">↖</div>
+                <div class="dpad-btn" id="btnUp">▲</div>
+                <div class="dpad-btn" id="btnUR">↗</div>
+                <div class="dpad-btn" id="btnLeft">◄</div>
+                <div class="dpad-btn" id="btnCenter">●</div>
+                <div class="dpad-btn" id="btnRight">►</div>
+                <div class="dpad-btn" id="btnDL">↙</div>
+                <div class="dpad-btn" id="btnDown">▼</div>
+                <div class="dpad-btn" id="btnDR">↘</div>
+            </div>
+        </div>
+
+        <div class="hud-overlay">
+            <div class="hud-header">
+                <div class="hud-panel">
+                    <div class="hearts-container" id="heartsHUD">
+                        <div class="heart" id="h1"></div>
+                        <div class="heart" id="h2"></div>
+                        <div class="heart" id="h3"></div>
+                        <div class="heart" id="h4"></div>
+                        <span id="playerNameDisplay" style="font-size: 11px; margin-left: 6px; font-weight: bold; color: var(--gold-color);">Hero</span>
+                    </div>
+                    <div class="coords-badge" id="coordsDisplay">Chunk [0, 0] | Tile (8, 8)</div>
+                    <div class="status-pill local" id="netStatusPill">
+                        <span class="status-dot" id="netDot"></span>
+                        <span id="netStatusText">Connecting...</span>
+                        <span class="ping-badge" id="pingDisplay">(0ms)</span>
+                    </div>
+                </div>
+
+                <div class="hud-buttons">
+                    <button class="btn btn-attack" id="attackBtn">⚔️ Attack (Space)</button>
+                    <button class="btn" id="changeNameBtn">✏️ Name</button>
+                    <button class="btn" id="skinToggleBtn">🎨 Skin: LINK</button>
+                    <button class="btn" id="consoleToggleBtn">🛠️ Console</button>
+                    <button class="btn" id="spawnBotBtn">🤖 +Bot</button>
+                </div>
+            </div>
+
+            <div class="hud-footer">
+                <div class="hud-panel">
+                    <div style="font-size: 9px; color: #64748b; margin-bottom: 2px; font-weight: bold;">WORLD LOG</div>
+                    <div class="log-box" id="logBox"></div>
+                </div>
+
+                <div class="hud-panel">
+                    <div style="font-size: 9px; color: var(--accent-color); margin-bottom: 4px; font-weight: bold;">ONLINE PLAYERS (<span id="onlineCount">1</span>)</div>
+                    <div class="players-panel" id="playersList"></div>
+                </div>
+
+                <div class="hud-panel" style="padding: 6px;">
+                    <div class="minimap-container">
+                        <canvas id="minimapCanvas"></canvas>
+                    </div>
+                    <div id="chunkStats" style="font-size: 9px; text-align: center; margin-top: 4px; color: var(--accent-color);">Chunks: 1</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="debugConsoleDrawer">
+            <div class="console-header">
+                <span style="color: var(--accent-color);">🛠️ LIVE NETWORK DIAGNOSTICS & DEBUG CONSOLE</span>
+                <div>
+                    <button class="btn" id="clearConsoleBtn" style="padding: 2px 6px; font-size: 9px; display: inline-block;">Clear</button>
+                    <button class="close-btn" id="closeConsoleBtn" style="font-size: 16px; margin-left: 8px; vertical-align: middle;">&times;</button>
+                </div>
+            </div>
+            <div class="console-output" id="consoleOutput"></div>
+        </div>
+
+        <!-- Name Modal -->
+        <div class="modal-backdrop active" id="namePromptModal">
+            <div class="modal-window" style="max-width: 420px;">
+                <div class="modal-header">
+                    <div class="modal-title">⚔️ Enter Your Character Name</div>
+                </div>
+                <div class="modal-body">
+                    <p style="margin: 0; color: #cbd5e1;">Choose a hero name to represent yourself in the infinite online world:</p>
+                    <input type="text" id="nameInput" class="name-input-box" placeholder="e.g. Link, Zelda, Hero" maxlength="12" value="Hero">
+                    <button class="btn" id="saveNameBtn" style="width: 100%; justify-content: center; padding: 10px; background: var(--accent-color); color: #000; font-size: 13px;">Enter World</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Death Screen Modal -->
+        <div class="death-overlay" id="deathOverlay">
+            <div class="death-title">YOU DIED</div>
+            <div class="death-timer" id="respawnTimerText">Respawning in 5 seconds...</div>
+        </div>
+    </div>
+
+    <script>
+        class FastSimplexNoise {
+            constructor(seed = 1337) {
+                this.p = new Uint8Array(256);
+                let s = seed;
+                const seededRng = () => {
+                    s = (s * 9301 + 49297) % 233280;
+                    return s / 233280;
+                };
+                for (let i = 0; i < 256; i++) this.p[i] = i;
+                for (let i = 255; i > 0; i--) {
+                    const j = Math.floor(seededRng() * (i + 1));
+                    const temp = this.p[i];
+                    this.p[i] = this.p[j];
+                    this.p[j] = temp;
+                }
+                this.perm = new Uint8Array(512);
+                this.permMod12 = new Uint8Array(512);
+                for (let i = 0; i < 512; i++) {
+                    this.perm[i] = this.p[i & 255];
+                    this.permMod12[i] = (this.perm[i] % 12);
+                }
+            }
+            noise2D(xin, yin) {
+                let n0, n1, n2;
+                const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+                const s = (xin + yin) * F2;
+                const i = Math.floor(xin + s);
+                const j = Math.floor(yin + s);
+                const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+                const t = (i + j) * G2;
+                const X0 = i - t;
+                const Y0 = j - t;
+                const x0 = xin - X0;
+                const y0 = yin - Y0;
+                let i1, j1;
+                if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+                const x1 = x0 - i1 + G2;
+                const y1 = y0 - j1 + G2;
+                const x2 = x0 - 1.0 + 2.0 * G2;
+                const y2 = y0 - 1.0 + 2.0 * G2;
+                const ii = i & 255;
+                const jj = j & 255;
+                let t0 = 0.5 - x0*x0 - y0*y0;
+                if (t0 < 0) n0 = 0.0;
+                else { t0 *= t0; n0 = t0 * t0 * (this.permMod12[ii + this.perm[jj]] * x0 + this.permMod12[ii + this.perm[jj]] * y0); }
+                let t1 = 0.5 - x1*x1 - y1*y1;
+                if (t1 < 0) n1 = 0.0;
+                else { t1 *= t1; n1 = t1 * t1 * (this.permMod12[ii + i1 + this.perm[jj + j1]] * x1 + this.permMod12[ii + i1 + this.perm[jj + j1]] * y1); }
+                let t2 = 0.5 - x2*x2 - y2*y2;
+                if (t2 < 0) n2 = 0.0;
+                else { t2 *= t2; n2 = t2 * t2 * (this.permMod12[ii + 1 + this.perm[jj + 1]] * x2 + this.permMod12[ii + 1 + this.perm[jj + 1]] * y2); }
+                return 70.0 * (n0 + n1 + n2);
+            }
+        }
+
+        const simplex = new FastSimplexNoise(1337);
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const mmCtx = minimapCanvas.getContext('2d');
+
+        const VIEW_WIDTH = 384;
+        const VIEW_HEIGHT = 288;
+        const TILE_SIZE = 16;
+        const CHUNK_SIZE = 16;
+
+        canvas.width = VIEW_WIDTH;
+        canvas.height = VIEW_HEIGHT;
+
+        const PALETTE = {
+            waterDeep: '#0d47a1',
+            waterShallow: '#1976d2',
+            sand: '#fbc02d',
+            grassBase: '#2e7d32',
+            grassLight: '#4caf50',
+            grassDark: '#1b5e20',
+            dirtPath: '#8d6e63',
+            stoneDark: '#37474f',
+            stoneLight: '#78909c',
+            woodDark: '#3e2723',
+            woodLight: '#8d6e63',
+            mountainPeak: '#eceff1',
+            plazaStone: '#64748b',
+            plazaGold: '#f59e0b',
+            skins: [
+                { tunic: '#2e7d32', cap: '#1b5e20', name: 'LINK' },
+                { tunic: '#1565c0', cap: '#0d47a1', name: 'ZORA' },
+                { tunic: '#c62828', cap: '#8e0000', name: 'GORON' },
+                { tunic: '#6a1b9a', cap: '#4a148c', name: 'VAATI' }
+            ]
+        };
+
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+            }
+            playStep() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.04);
+                    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.04);
+                } catch(e) {}
+            }
+            playSword() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.12);
+                } catch(e) {}
+            }
+            playHit() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.18);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.18);
+                } catch(e) {}
+            }
+            playChime() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.35);
+                } catch(e) {}
+            }
+        }
+        const sfx = new SoundFX();
+
+        const SPRITES = {};
+
+        function generateAllSprites() {
+            SPRITES[0] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.waterDeep; cx.fillRect(0,0,16,16);
+                cx.fillStyle = '#1565c0'; cx.fillRect(3,4,4,1); cx.fillRect(10,12,3,1);
+                return c;
+            })();
+
+            SPRITES[1] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.waterShallow; cx.fillRect(0,0,16,16);
+                cx.fillStyle = '#42a5f5'; cx.fillRect(2,3,5,1); cx.fillRect(9,10,4,1);
+                return c;
+            })();
+
+            SPRITES[2] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.sand; cx.fillRect(0,0,16,16);
+                cx.fillStyle = '#f57f17'; cx.fillRect(4,5,1,1); cx.fillRect(11,2,1,1);
+                return c;
+            })();
+
+            SPRITES[3] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.grassBase; cx.fillRect(0,0,16,16);
+                cx.fillStyle = PALETTE.grassDark; cx.fillRect(2,3,1,2); cx.fillRect(10,11,1,2);
+                cx.fillStyle = PALETTE.grassLight; cx.fillRect(3,3,1,1); cx.fillRect(11,11,1,1);
+                return c;
+            })();
+
+            SPRITES[4] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.drawImage(SPRITES[3], 0, 0);
+                cx.fillStyle = '#f43f5e'; cx.fillRect(5, 6, 2, 2); cx.fillRect(12, 4, 2, 2);
+                cx.fillStyle = '#fde047'; cx.fillRect(5, 6, 1, 1); cx.fillRect(12, 4, 1, 1);
+                return c;
+            })();
+
+            SPRITES[5] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.dirtPath; cx.fillRect(0,0,16,16);
+                cx.fillStyle = '#5d4037'; cx.fillRect(3,2,2,1); cx.fillRect(10,8,3,1);
+                return c;
+            })();
+
+            SPRITES[6] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.drawImage(SPRITES[3], 0, 0);
+                cx.fillStyle = PALETTE.stoneDark; cx.fillRect(3,3,10,10);
+                cx.fillStyle = PALETTE.stoneLight; cx.fillRect(4,4,8,8);
+                return c;
+            })();
+
+            SPRITES.treeBottom = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.drawImage(SPRITES[3], 0, 0);
+                cx.fillStyle = PALETTE.woodDark; cx.fillRect(6,2,4,12);
+                cx.fillStyle = PALETTE.woodLight; cx.fillRect(7,2,2,12);
+                return c;
+            })();
+
+            SPRITES.treeTop = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.grassDark; cx.beginPath(); cx.arc(8,8,7,0,Math.PI*2); cx.fill();
+                cx.fillStyle = PALETTE.grassBase; cx.beginPath(); cx.arc(7,7,5,0,Math.PI*2); cx.fill();
+                cx.fillStyle = PALETTE.grassLight; cx.beginPath(); cx.arc(5,5,3,0,Math.PI*2); cx.fill();
+                return c;
+            })();
+
+            SPRITES[8] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.stoneDark; cx.fillRect(0,0,16,16);
+                cx.fillStyle = PALETTE.mountainPeak;
+                cx.beginPath(); cx.moveTo(8,1); cx.lineTo(15,15); cx.lineTo(1,15); cx.closePath(); cx.fill();
+                return c;
+            })();
+
+            SPRITES[9] = (() => {
+                const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                const cx = c.getContext('2d');
+                cx.fillStyle = PALETTE.plazaStone; cx.fillRect(0,0,16,16);
+                cx.fillStyle = '#334155'; cx.fillRect(0,0,16,1); cx.fillRect(0,0,1,16); cx.fillRect(15,0,1,16); cx.fillRect(0,15,16,1);
+                cx.fillStyle = PALETTE.plazaGold; cx.fillRect(6,6,4,4);
+                return c;
+            })();
+
+            SPRITES.player = [];
+            for (let s = 0; s < PALETTE.skins.length; s++) {
+                const skin = PALETTE.skins[s];
+                SPRITES.player[s] = [];
+
+                for (let dir = 0; dir < 8; dir++) {
+                    SPRITES.player[s][dir] = [];
+                    for (let frame = 0; frame < 3; frame++) {
+                        const c = document.createElement('canvas'); c.width = 16; c.height = 16;
+                        const cx = c.getContext('2d');
+
+                        cx.fillStyle = 'rgba(0,0,0,0.38)';
+                        cx.beginPath(); cx.ellipse(8, 14, 5, 2, 0, 0, Math.PI*2); cx.fill();
+
+                        let legL = (frame === 1) ? -1 : 0;
+                        let legR = (frame === 2) ? -1 : 0;
+
+                        cx.fillStyle = PALETTE.woodDark;
+                        cx.fillRect(5, 12 + legL, 2, 3);
+                        cx.fillRect(9, 12 + legR, 2, 3);
+
+                        cx.fillStyle = skin.tunic; cx.fillRect(4, 6, 8, 7);
+                        cx.fillStyle = skin.cap; cx.fillRect(4, 1, 8, 5);
+
+                        if (dir === 0) {
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(5, 4, 6, 3);
+                            cx.fillStyle = '#000'; cx.fillRect(6, 5, 1, 1); cx.fillRect(9, 5, 1, 1);
+                        } else if (dir === 1) {
+                            cx.fillStyle = skin.cap; cx.fillRect(4, 2, 8, 5);
+                        } else if (dir === 2) {
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(4, 4, 4, 3);
+                            cx.fillStyle = '#000'; cx.fillRect(5, 5, 1, 1);
+                        } else if (dir === 3) {
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(8, 4, 4, 3);
+                            cx.fillStyle = '#000'; cx.fillRect(10, 5, 1, 1);
+                        } else if (dir === 4) {
+                            cx.fillStyle = skin.cap; cx.fillRect(4, 2, 7, 5);
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(4, 4, 3, 2);
+                            cx.fillStyle = '#000'; cx.fillRect(4, 5, 1, 1);
+                        } else if (dir === 5) {
+                            cx.fillStyle = skin.cap; cx.fillRect(5, 2, 7, 5);
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(9, 4, 3, 2);
+                            cx.fillStyle = '#000'; cx.fillRect(11, 5, 1, 1);
+                        } else if (dir === 6) {
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(4, 4, 5, 3);
+                            cx.fillStyle = '#000'; cx.fillRect(5, 5, 1, 1); cx.fillRect(7, 5, 1, 1);
+                        } else if (dir === 7) {
+                            cx.fillStyle = '#ffcc80'; cx.fillRect(7, 4, 5, 3);
+                            cx.fillStyle = '#000'; cx.fillRect(8, 5, 1, 1); cx.fillRect(10, 5, 1, 1);
+                        }
+
+                        SPRITES.player[s][dir][frame] = c;
+                    }
+                }
+            }
+        }
+
+        generateAllSprites();
+
+        const chunkCache = new Map();
+        function getChunkKey(cx, cy) { return `${cx},${cy}`; }
+
+        function generateProceduralChunk(cx, cy) {
+            const tiles = new Array(CHUNK_SIZE * CHUNK_SIZE);
+            for (let ly = 0; ly < CHUNK_SIZE; ly++) {
+                for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+                    const gx = cx * CHUNK_SIZE + lx;
+                    const gy = cy * CHUNK_SIZE + ly;
+
+                    if (cx === 0 && cy === 0) {
+                        if (Math.abs(lx - 8) <= 4 && Math.abs(ly - 8) <= 4) {
+                            tiles[ly * CHUNK_SIZE + lx] = 9;
+                            continue;
+                        }
+                        if (Math.abs(lx - 8) <= 6 && Math.abs(ly - 8) <= 6) {
+                            tiles[ly * CHUNK_SIZE + lx] = 3;
+                            continue;
+                        }
+                    }
+
+                    const n = simplex.noise2D(gx * 0.04, gy * 0.04);
+
+                    let tile = 3;
+                    if (n < -0.85) tile = 0;
+                    else if (n < -0.72) tile = 1;
+                    else if (n < -0.58) tile = 2;
+                    else if (n < 0.40) tile = (Math.abs(gx * 3 + gy * 7) % 19 === 0) ? 4 : 3;
+                    else if (n < 0.72) tile = 5;
+                    else if (n < 0.90) tile = 7;
+                    else if (n < 0.96) tile = 6;
+                    else tile = 8;
+
+                    tiles[ly * CHUNK_SIZE + lx] = tile;
+                }
+            }
+            return { cx, cy, tiles };
+        }
+
+        function getChunk(cx, cy) {
+            const key = getChunkKey(cx, cy);
+            if (chunkCache.has(key)) return chunkCache.get(key);
+            const chunk = generateProceduralChunk(cx, cy);
+            chunkCache.set(key, chunk);
+            return chunk;
+        }
+
+        function getTileAtGlobal(gx, gy) {
+            const cx = Math.floor(gx / CHUNK_SIZE);
+            const cy = Math.floor(gy / CHUNK_SIZE);
+            const lx = ((gx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            const ly = ((gy % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            const chunk = getChunk(cx, cy);
+            return chunk.tiles[ly * CHUNK_SIZE + lx];
+        }
+
+        function isSolidTile(gx, gy) {
+            const tile = getTileAtGlobal(gx, gy);
+            return (tile === 0 || tile === 6 || tile === 7 || tile === 8);
+        }
+
+        let myId = localStorage.getItem('zelda_mmo_uid');
+        if (!myId) {
+            myId = 'P_' + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('zelda_mmo_uid', myId);
+        }
+
+        let myName = localStorage.getItem('zelda_player_name') || 'Hero';
+
+        const startGx = 8;
+        const startGy = 8;
+
+        const localPlayer = {
+            id: myId,
+            name: myName,
+            skin: 0,
+            hp: 100,
+            isDead: false,
+            gx: startGx,
+            gy: startGy,
+            renderX: startGx * TILE_SIZE,
+            renderY: startGy * TILE_SIZE,
+            dir: 0,
+            animFrame: 0,
+            isMoving: false,
+            moveProgress: 0,
+            targetGx: startGx,
+            targetGy: startGy,
+            moveSpeed: 6.8,
+            attackTimer: 0,
+            attackCooldown: 0
+        };
+
+        const otherPlayers = {};
+        const activeKeys = new Set();
+        const pendingHits = new Set();
+        let shouldRespawn = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT') return;
+            if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
+                activeKeys.add(e.code);
+                e.preventDefault();
+                sfx.init();
+            }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                performAttack();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => activeKeys.delete(e.code));
+        window.addEventListener('blur', () => activeKeys.clear());
+
+        const setupTouchPad = () => {
+            const binds = [
+                ['btnUp', ['KeyW']], ['btnDown', ['KeyS']], ['btnLeft', ['KeyA']], ['btnRight', ['KeyD']],
+                ['btnUL', ['KeyW', 'KeyA']], ['btnUR', ['KeyW', 'KeyD']],
+                ['btnDL', ['KeyS', 'KeyA']], ['btnDR', ['KeyS', 'KeyD']]
+            ];
+            binds.forEach(([elemId, keyCodes]) => {
+                const btn = document.getElementById(elemId);
+                if (!btn) return;
+                const press = (e) => { e.preventDefault(); sfx.init(); keyCodes.forEach(k => activeKeys.add(k)); btn.classList.add('active'); };
+                const release = (e) => { e.preventDefault(); keyCodes.forEach(k => activeKeys.delete(k)); btn.classList.remove('active'); };
+                btn.addEventListener('touchstart', press);
+                btn.addEventListener('touchend', release);
+                btn.addEventListener('mousedown', press);
+                btn.addEventListener('mouseup', release);
+            });
+        };
+        setupTouchPad();
+
+        document.getElementById('attackBtn').addEventListener('click', () => performAttack());
+
+        function performAttack() {
+            if (localPlayer.isDead || localPlayer.attackCooldown > 0) return;
+            sfx.init();
+            sfx.playSword();
+            localPlayer.attackTimer = 0.2;
+            localPlayer.attackCooldown = 0.4;
+
+            // Attack Hit Box logic (1 tile in facing direction)
+            let dirVector = [0, 1];
+            if (localPlayer.dir === 1) dirVector = [0, -1];
+            else if (localPlayer.dir === 2) dirVector = [-1, 0];
+            else if (localPlayer.dir === 3) dirVector = [1, 0];
+            else if (localPlayer.dir === 4) dirVector = [-1, -1];
+            else if (localPlayer.dir === 5) dirVector = [1, -1];
+            else if (localPlayer.dir === 6) dirVector = [-1, 1];
+            else if (localPlayer.dir === 7) dirVector = [1, 1];
+
+            const attackGx = localPlayer.gx + dirVector[0];
+            const attackGy = localPlayer.gy + dirVector[1];
+
+            // Check collision with remote players & bots
+            for (let id in otherPlayers) {
+                const p = otherPlayers[id];
+                if (p.isDead) continue;
+                const dist = Math.hypot(p.gx - attackGx, p.gy - attackGy);
+                if (dist <= 1.2) {
+                    sfx.playHit();
+                    pendingHits.add(id);
+                    addLog(`⚔️ Hit ${p.name} (-25 HP)`, 'combat');
+
+                    // Predict local damage on bot/other player
+                    p.hp = Math.max(0, (p.hp || 100) - 25);
+                    if (p.hp <= 0) p.isDead = true;
+                }
+            }
+        }
+
+        let localChannel = null;
+        try {
+            if (window.BroadcastChannel) {
+                localChannel = new BroadcastChannel('zelda_mmo_local_channel');
+                localChannel.onmessage = (e) => {
+                    if (e.data && e.data.type === 'player_sync' && e.data.id !== myId) {
+                        updateRemotePlayer(e.data.id, e.data);
+                    }
+                };
+            }
+        } catch(e) {}
+
+        function broadcastLocalPosition() {
+            if (!localChannel) return;
+            try {
+                localChannel.postMessage({
+                    type: 'player_sync',
+                    id: localPlayer.id,
+                    n: localPlayer.name,
+                    s: localPlayer.skin,
+                    x: localPlayer.gx,
+                    y: localPlayer.gy,
+                    d: localPlayer.dir,
+                    hp: localPlayer.hp,
+                    isDead: localPlayer.isDead ? 1 : 0
+                });
+            } catch(e) {}
+        }
+
+        let isSyncing = false;
+        let lastPingMs = 0;
+
+        function logToConsole(msg, type = 'info') {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            const time = new Date().toLocaleTimeString();
+            line.innerText = `[${time}] ${msg}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        async function syncWithServer() {
+            broadcastLocalPosition();
+
+            if (isSyncing) return;
+            isSyncing = true;
+            const startTime = performance.now();
+
+            try {
+                const hitsToSend = Array.from(pendingHits);
+                pendingHits.clear();
+
+                const payload = {
+                    id: localPlayer.id,
+                    n: localPlayer.name,
+                    s: localPlayer.skin,
+                    x: localPlayer.gx,
+                    y: localPlayer.gy,
+                    d: localPlayer.dir,
+                    hits: hitsToSend,
+                    respawn: shouldRespawn
+                };
+
+                if (shouldRespawn) shouldRespawn = false;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1800);
+
+                const res = await fetch('api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                lastPingMs = Math.round(performance.now() - startTime);
+
+                if (!res.ok) {
+                    updateNetworkBadge(`HTTP ${res.status}`, 'offline', lastPingMs);
+                    return;
+                }
+
+                const data = await res.json();
+                if (data && data.status === 'ok' && data.players) {
+                    updateNetworkBadge('PHP Sync Active', 'ok', lastPingMs);
+
+                    for (let id in data.players) {
+                        if (id === myId) {
+                            // Synchronize server-authoritative HP to local player
+                            const serverPlayer = data.players[id];
+                            if (serverPlayer.hp !== undefined) {
+                                if (serverPlayer.hp < localPlayer.hp && !localPlayer.isDead) {
+                                    sfx.playHit();
+                                    addLog(`💥 Took damage! (${serverPlayer.hp} HP remaining)`, 'combat');
+                                }
+                                localPlayer.hp = serverPlayer.hp;
+                                updateHeartsHUD();
+
+                                if (localPlayer.hp <= 0 && !localPlayer.isDead) {
+                                    triggerDeathSequence();
+                                }
+                            }
+                        } else {
+                            updateRemotePlayer(id, data.players[id]);
+                        }
+                    }
+
+                    let changed = false;
+                    for (let id in otherPlayers) {
+                        if (!data.players[id] && !id.startsWith('Bot_') && (Date.now() - otherPlayers[id].lastSeen > 6000)) {
+                            addLog(`👋 ${otherPlayers[id].name} left`, 'leave');
+                            delete otherPlayers[id];
+                            changed = true;
+                        }
+                    }
+                    if (changed) updatePlayersListHUD();
+                }
+            } catch (err) {
+                lastPingMs = Math.round(performance.now() - startTime);
+                updateNetworkBadge('BroadcastChannel Active', 'local', lastPingMs);
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        function triggerDeathSequence() {
+            localPlayer.isDead = true;
+            localPlayer.hp = 0;
+            addLog(`☠️ You were defeated! Respawning in 5s...`, 'combat');
+
+            const deathOverlay = document.getElementById('deathOverlay');
+            const respawnText = document.getElementById('respawnTimerText');
+            deathOverlay.classList.add('active');
+
+            let secondsLeft = 5;
+            respawnText.innerText = `Respawning in ${secondsLeft} seconds...`;
+
+            const timerInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft > 0) {
+                    respawnText.innerText = `Respawning in ${secondsLeft} seconds...`;
+                } else {
+                    clearInterval(timerInterval);
+                    deathOverlay.classList.remove('active');
+
+                    // Respawn player
+                    localPlayer.isDead = false;
+                    localPlayer.hp = 100;
+                    localPlayer.gx = startGx;
+                    localPlayer.gy = startGy;
+                    localPlayer.targetGx = startGx;
+                    localPlayer.targetGy = startGy;
+                    localPlayer.renderX = startGx * TILE_SIZE;
+                    localPlayer.renderY = startGy * TILE_SIZE;
+
+                    shouldRespawn = true;
+                    updateHeartsHUD();
+                    updateHUDCoords();
+                    addLog(`✨ Respawned at Spawn Plaza!`, 'system');
+                    sfx.playChime();
+                }
+            }, 1000);
+        }
+
+        function updateRemotePlayer(id, raw) {
+            const cleanName = (raw.n || raw.name || 'Hero').toString().substring(0, 12);
+            const gx = parseInt(raw.x) || 0;
+            const gy = parseInt(raw.y) || 0;
+            const dir = Math.max(0, Math.min(7, parseInt(raw.d) || 0));
+            const skin = Math.max(0, Math.min(PALETTE.skins.length - 1, parseInt(raw.s) || 0));
+            const hp = (raw.hp !== undefined) ? parseInt(raw.hp) : 100;
+            const isDead = Boolean(raw.isDead);
+
+            if (!otherPlayers[id]) {
+                otherPlayers[id] = {
+                    id: id,
+                    name: cleanName,
+                    gx: gx,
+                    gy: gy,
+                    renderX: gx * TILE_SIZE,
+                    renderY: gy * TILE_SIZE,
+                    dir: dir,
+                    skin: skin,
+                    hp: hp,
+                    isDead: isDead,
+                    animFrame: 0,
+                    lastSeen: Date.now()
+                };
+                addLog(`⚔️ ${cleanName} joined world!`, 'join');
+                sfx.playChime();
+            } else {
+                const p = otherPlayers[id];
+                p.name = cleanName;
+                p.gx = gx;
+                p.gy = gy;
+                p.dir = dir;
+                p.skin = skin;
+                p.hp = hp;
+                p.isDead = isDead;
+                p.lastSeen = Date.now();
+            }
+
+            updatePlayersListHUD();
+        }
+
+        function updateNetworkBadge(statusText, mode, ping) {
+            const pill = document.getElementById('netStatusPill');
+            document.getElementById('netStatusText').innerText = statusText;
+            document.getElementById('pingDisplay').innerText = `(${ping}ms)`;
+            pill.className = 'status-pill ' + (mode === 'ok' ? '' : (mode === 'local' ? 'local' : 'offline'));
+        }
+
+        setInterval(syncWithServer, 250);
+
+        function updateHeartsHUD() {
+            const hearts = [
+                document.getElementById('h1'),
+                document.getElementById('h2'),
+                document.getElementById('h3'),
+                document.getElementById('h4')
+            ];
+
+            const activeCount = Math.ceil(localPlayer.hp / 25);
+            hearts.forEach((h, idx) => {
+                if (idx < activeCount) h.classList.remove('empty');
+                else h.classList.add('empty');
+            });
+        }
+
+        function getDirection8Way(dx, dy) {
+            if (dx === 0 && dy < 0) return 1;
+            if (dx === 0 && dy > 0) return 0;
+            if (dx < 0 && dy === 0) return 2;
+            if (dx > 0 && dy === 0) return 3;
+            if (dx < 0 && dy < 0) return 4;
+            if (dx > 0 && dy < 0) return 5;
+            if (dx < 0 && dy > 0) return 6;
+            if (dx > 0 && dy > 0) return 7;
+            return localPlayer.dir;
+        }
+
+        function updateGameLogic(dt) {
+            if (localPlayer.attackTimer > 0) localPlayer.attackTimer -= dt;
+            if (localPlayer.attackCooldown > 0) localPlayer.attackCooldown -= dt;
+
+            if (!localPlayer.isMoving && !localPlayer.isDead) {
+                let dx = 0, dy = 0;
+
+                if (activeKeys.has('KeyW') || activeKeys.has('ArrowUp')) dy -= 1;
+                if (activeKeys.has('KeyS') || activeKeys.has('ArrowDown')) dy += 1;
+                if (activeKeys.has('KeyA') || activeKeys.has('ArrowLeft')) dx -= 1;
+                if (activeKeys.has('KeyD') || activeKeys.has('ArrowRight')) dx += 1;
+
+                if (dx !== 0 || dy !== 0) {
+                    localPlayer.dir = getDirection8Way(dx, dy);
+
+                    const targetX = localPlayer.gx + dx;
+                    const targetY = localPlayer.gy + dy;
+
+                    let canMove = false;
+                    if (dx !== 0 && dy !== 0) {
+                        const targetClear = !isSolidTile(targetX, targetY);
+                        const horizClear = !isSolidTile(localPlayer.gx + dx, localPlayer.gy);
+                        const vertClear = !isSolidTile(localPlayer.gx, localPlayer.gy + dy);
+                        canMove = targetClear && (horizClear || vertClear);
+                    } else {
+                        canMove = !isSolidTile(targetX, targetY);
+                    }
+
+                    if (canMove) {
+                        localPlayer.targetGx = targetX;
+                        localPlayer.targetGy = targetY;
+                        localPlayer.isMoving = true;
+                        localPlayer.moveProgress = 0;
+                        sfx.playStep();
+                    }
+                }
+            }
+
+            if (localPlayer.isMoving) {
+                const isDiagonal = (localPlayer.targetGx !== localPlayer.gx && localPlayer.targetGy !== localPlayer.gy);
+                const speed = isDiagonal ? localPlayer.moveSpeed * 0.85 : localPlayer.moveSpeed;
+
+                localPlayer.moveProgress += dt * speed;
+                localPlayer.animFrame = Math.floor(localPlayer.moveProgress * 4) % 3;
+
+                const startX = localPlayer.gx * TILE_SIZE;
+                const startY = localPlayer.gy * TILE_SIZE;
+                const targetX = localPlayer.targetGx * TILE_SIZE;
+                const targetY = localPlayer.targetGy * TILE_SIZE;
+
+                localPlayer.renderX = startX + (targetX - startX) * Math.min(localPlayer.moveProgress, 1);
+                localPlayer.renderY = startY + (targetY - startY) * Math.min(localPlayer.moveProgress, 1);
+
+                if (localPlayer.moveProgress >= 1) {
+                    localPlayer.gx = localPlayer.targetGx;
+                    localPlayer.gy = localPlayer.targetGy;
+                    localPlayer.renderX = localPlayer.gx * TILE_SIZE;
+                    localPlayer.renderY = localPlayer.gy * TILE_SIZE;
+                    localPlayer.isMoving = false;
+                    localPlayer.animFrame = 0;
+
+                    updateHUDCoords();
+                    broadcastLocalPosition();
+                }
+            }
+
+            for (let id in otherPlayers) {
+                const p = otherPlayers[id];
+                const targetX = p.gx * TILE_SIZE;
+                const targetY = p.gy * TILE_SIZE;
+                p.renderX += (targetX - p.renderX) * 0.25;
+                p.renderY += (targetY - p.renderY) * 0.25;
+            }
+        }
+
+        function renderScene() {
+            const camX = Math.floor(localPlayer.renderX - VIEW_WIDTH / 2 + TILE_SIZE / 2);
+            const camY = Math.floor(localPlayer.renderY - VIEW_HEIGHT / 2 + TILE_SIZE / 2);
+
+            ctx.save();
+            ctx.translate(-camX, -camY);
+
+            const startTileX = Math.floor(camX / TILE_SIZE) - 1;
+            const endTileX = Math.ceil((camX + VIEW_WIDTH) / TILE_SIZE) + 1;
+            const startTileY = Math.floor(camY / TILE_SIZE) - 1;
+            const endTileY = Math.ceil((camY + VIEW_HEIGHT) / TILE_SIZE) + 1;
+
+            // Ground Layer
+            for (let gy = startTileY; gy <= endTileY; gy++) {
+                for (let gx = startTileX; gx <= endTileX; gx++) {
+                    const tile = getTileAtGlobal(gx, gy);
+                    const px = gx * TILE_SIZE;
+                    const py = gy * TILE_SIZE;
+
+                    if (tile === 7) {
+                        ctx.drawImage(SPRITES.treeBottom, px, py);
+                    } else if (SPRITES[tile]) {
+                        ctx.drawImage(SPRITES[tile], px, py);
+                    }
+                }
+            }
+
+            // Entities Layer
+            const entities = [localPlayer, ...Object.values(otherPlayers)];
+            entities.sort((a, b) => a.renderY - b.renderY);
+
+            entities.forEach(ent => {
+                if (ent.isDead) return; // Hide dead players
+
+                try {
+                    const skinIdx = Math.max(0, Math.min(PALETTE.skins.length - 1, ent.skin || 0));
+                    const dirIdx = Math.max(0, Math.min(7, ent.dir || 0));
+                    const frameIdx = Math.max(0, Math.min(2, ent.animFrame || 0));
+
+                    const spr = SPRITES.player[skinIdx][dirIdx][frameIdx];
+                    const rx = Math.floor(ent.renderX || 0);
+                    const ry = Math.floor(ent.renderY || 0);
+
+                    ctx.drawImage(spr, rx, ry);
+
+                    // Render Sword Arc Animation if attacking
+                    if (ent.id === myId && localPlayer.attackTimer > 0) {
+                        ctx.strokeStyle = '#fef08a';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        let arcAngle = 0;
+                        if (ent.dir === 0) arcAngle = Math.PI / 2;
+                        else if (ent.dir === 1) arcAngle = -Math.PI / 2;
+                        else if (ent.dir === 2) arcAngle = Math.PI;
+                        else if (ent.dir === 3) arcAngle = 0;
+
+                        ctx.arc(rx + 8, ry + 8, 14, arcAngle - 0.6, arcAngle + 0.6);
+                        ctx.stroke();
+                    }
+
+                    // --- VISIBLE HIGH-CONTRAST NAMETAG & HEALTH BAR ---
+                    const nameText = ent.name || 'Hero';
+                    ctx.font = 'bold 9px Arial, sans-serif';
+                    const textWidth = ctx.measureText(nameText).width;
+                    const badgeWidth = Math.max(textWidth + 8, 22);
+
+                    const badgeX = rx + 8 - badgeWidth / 2;
+                    const badgeY = ry - 16;
+
+                    // Nametag Badge Background
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                    ctx.fillRect(badgeX, badgeY, badgeWidth, 12);
+                    ctx.strokeStyle = (ent.id === myId) ? '#f59e0b' : '#10b981';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(badgeX, badgeY, badgeWidth, 12);
+
+                    // Nametag Text
+                    ctx.fillStyle = (ent.id === myId) ? '#fef08a' : '#ffffff';
+                    ctx.fillText(nameText, rx + 8 - textWidth / 2, badgeY + 9);
+
+                    // Health Bar Below Badge
+                    const hpPercent = Math.max(0, Math.min(100, ent.hp || 100)) / 100;
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(badgeX, badgeY + 13, badgeWidth, 3);
+                    ctx.fillStyle = hpPercent > 0.5 ? '#10b981' : (hpPercent > 0.25 ? '#f59e0b' : '#ef4444');
+                    ctx.fillRect(badgeX, badgeY + 13, badgeWidth * hpPercent, 3);
+
+                } catch(err) {}
+            });
+
+            // Overhead Tree Canopy
+            for (let gy = startTileY; gy <= endTileY; gy++) {
+                for (let gx = startTileX; gx <= endTileX; gx++) {
+                    if (getTileAtGlobal(gx, gy) === 7) {
+                        ctx.drawImage(SPRITES.treeTop, gx * TILE_SIZE, gy * TILE_SIZE - 4);
+                    }
+                }
+            }
+
+            ctx.restore();
+            renderMinimap();
+        }
+
+        function renderMinimap() {
+            mmCtx.fillStyle = '#000';
+            mmCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            const mapRadius = 12;
+            const tileSize = minimapCanvas.width / (mapRadius * 2 + 1);
+
+            for (let dy = -mapRadius; dy <= mapRadius; dy++) {
+                for (let dx = -mapRadius; dx <= mapRadius; dx++) {
+                    const gx = localPlayer.gx + dx;
+                    const gy = localPlayer.gy + dy;
+                    const tile = getTileAtGlobal(gx, gy);
+
+                    if (tile === 0 || tile === 1) mmCtx.fillStyle = '#1565c0';
+                    else if (tile === 2) mmCtx.fillStyle = '#fbc02d';
+                    else if (tile === 5) mmCtx.fillStyle = '#8d6e63';
+                    else if (tile === 6 || tile === 8) mmCtx.fillStyle = '#37474f';
+                    else if (tile === 9) mmCtx.fillStyle = '#f59e0b';
+                    else mmCtx.fillStyle = '#1b5e20';
+
+                    mmCtx.fillRect((dx + mapRadius) * tileSize, (dy + mapRadius) * tileSize, tileSize, tileSize);
+                }
+            }
+
+            for (let id in otherPlayers) {
+                const p = otherPlayers[id];
+                if (p.isDead) continue;
+                const relX = p.gx - localPlayer.gx;
+                const relY = p.gy - localPlayer.gy;
+                if (Math.abs(relX) <= mapRadius && Math.abs(relY) <= mapRadius) {
+                    mmCtx.fillStyle = '#10b981';
+                    mmCtx.fillRect((relX + mapRadius) * tileSize, (relY + mapRadius) * tileSize, tileSize, tileSize);
+                }
+            }
+
+            if (!localPlayer.isDead) {
+                mmCtx.fillStyle = '#f59e0b';
+                mmCtx.fillRect(mapRadius * tileSize, mapRadius * tileSize, tileSize * 1.5, tileSize * 1.5);
+            }
+        }
+
+        function updateHUDCoords() {
+            const cx = Math.floor(localPlayer.gx / CHUNK_SIZE);
+            const cy = Math.floor(localPlayer.gy / CHUNK_SIZE);
+            document.getElementById('coordsDisplay').innerText = `Chunk [${cx}, ${cy}] | Tile (${localPlayer.gx}, ${localPlayer.gy})`;
+            document.getElementById('chunkStats').innerText = `Chunks: ${chunkCache.size}`;
+        }
+
+        function updatePlayersListHUD() {
+            const listContainer = document.getElementById('playersList');
+            const onlineCount = document.getElementById('onlineCount');
+
+            const all = [localPlayer, ...Object.values(otherPlayers)];
+            onlineCount.innerText = all.filter(p => !p.isDead).length;
+
+            listContainer.innerHTML = '';
+            all.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'player-row';
+                const statusColor = p.isDead ? '#ef4444' : (p.id === myId ? 'var(--gold-color)' : 'var(--accent-color)');
+                const deadLabel = p.isDead ? ' [DEAD]' : '';
+                row.innerHTML = `<span style="color: ${statusColor}">● ${p.name || p.id.substring(0,6)}${deadLabel}</span>
+                                 <span style="color: #64748b">${p.hp} HP</span>`;
+                listContainer.appendChild(row);
+            });
+        }
+
+        function addLog(msg, type = '') {
+            const logBox = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerText = msg;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        const nameModal = document.getElementById('namePromptModal');
+        const nameInput = document.getElementById('nameInput');
+
+        document.getElementById('saveNameBtn').addEventListener('click', () => {
+            const val = nameInput.value.trim().substring(0, 12) || 'Hero';
+            myName = val;
+            localPlayer.name = val;
+            localStorage.setItem('zelda_player_name', val);
+            document.getElementById('playerNameDisplay').innerText = val;
+            nameModal.classList.remove('active');
+            updatePlayersListHUD();
+            addLog(`Welcome, ${val}!`, 'system');
+            sfx.playChime();
+        });
+
+        document.getElementById('changeNameBtn').addEventListener('click', () => {
+            nameInput.value = myName;
+            nameModal.classList.add('active');
+        });
+
+        document.getElementById('skinToggleBtn').addEventListener('click', (e) => {
+            localPlayer.skin = (localPlayer.skin + 1) % PALETTE.skins.length;
+            const currentSkin = PALETTE.skins[localPlayer.skin];
+            e.target.innerText = `🎨 Skin: ${currentSkin.name}`;
+            updatePlayersListHUD();
+            broadcastLocalPosition();
+        });
+
+        const consoleDrawer = document.getElementById('debugConsoleDrawer');
+        document.getElementById('consoleToggleBtn').addEventListener('click', () => consoleDrawer.classList.toggle('open'));
+        document.getElementById('netStatusPill').addEventListener('click', () => consoleDrawer.classList.add('open'));
+        document.getElementById('closeConsoleBtn').addEventListener('click', () => consoleDrawer.classList.remove('open'));
+        document.getElementById('clearConsoleBtn').addEventListener('click', () => document.getElementById('consoleOutput').innerHTML = '');
+
+        document.getElementById('spawnBotBtn').addEventListener('click', () => {
+            const botNames = ['Guard_Zelda', 'Traveler_Tom', 'Scout_Link', 'Wanderer_99'];
+            const botId = 'Bot_' + Math.floor(Math.random() * 899 + 100);
+            const botName = botNames[Math.floor(Math.random() * botNames.length)];
+            const gx = localPlayer.gx + Math.floor(Math.random() * 6 - 3);
+            const gy = localPlayer.gy + Math.floor(Math.random() * 6 - 3);
+            const skin = Math.floor(Math.random() * PALETTE.skins.length);
+
+            if (!isSolidTile(gx, gy)) {
+                updateRemotePlayer(botId, { n: botName, x: gx, y: gy, d: 0, s: skin, hp: 100 });
+
+                setInterval(() => {
+                    const bot = otherPlayers[botId];
+                    if (!bot || bot.isDead) return;
+                    const dirs = [[0,1],[0,-1],[-1,0],[1,0],[-1,-1],[1,-1],[-1,1],[1,1]];
+                    const pick = dirs[Math.floor(Math.random() * dirs.length)];
+                    const nx = bot.gx + pick[0];
+                    const ny = bot.gy + pick[1];
+                    if (!isSolidTile(nx, ny)) {
+                        bot.dir = getDirection8Way(pick[0], pick[1]);
+                        bot.gx = nx;
+                        bot.gy = ny;
+                        bot.lastSeen = Date.now();
+                        updatePlayersListHUD();
+                    }
+                }, 1000);
+            }
+        });
+
+        let lastTime = performance.now();
+
+        function gameLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+
+            try {
+                updateGameLogic(dt);
+                renderScene();
+            } catch (err) {}
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            if (localStorage.getItem('zelda_player_name')) {
+                nameModal.classList.remove('active');
+                document.getElementById('playerNameDisplay').innerText = myName;
+            } else {
+                nameModal.classList.add('active');
+            }
+
+            addLog('Zelda Infinite Grid Engine Loaded', 'system');
+            updateHeartsHUD();
+            updateHUDCoords();
+            updatePlayersListHUD();
+
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
